@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.client.RestTemplate
-import org.springframework.web.util.UriBuilder
 import org.springframework.web.util.UriComponentsBuilder
+import svinoczar.vk.echobot.data.VkRequest
 import kotlin.random.Random
 
 @RestController
@@ -18,34 +18,34 @@ class VkRestController {
     private lateinit var confirmationToken: String
     @Value("\${vk.token.api}")
     private lateinit var apiToken: String
-    private val sendMessageUrl: String = "https://api.vk.com/method/messages.send?"
+    @Value("\${vk.rest.messages.send}")
+    private lateinit var sendMessageUrl: String
 
     @PostMapping("/callback")
-    fun callback(@RequestBody message: VkMessage): ResponseEntity<String> {
-        return when (message.type){
+    fun callback(@RequestBody request: VkRequest): ResponseEntity<String> {
+        return when (request.type){
             "confirmation" -> ResponseEntity.ok(confirmationToken)
-            "new_message" -> {
-                sendMessage(message)
-                ResponseEntity.ok("Ok")
+            "message_new" -> {
+                if (request.obj?.message?.text.isNullOrEmpty() || request.obj?.message?.sender.toString().isNullOrEmpty()){
+                    return ResponseEntity.badRequest().body("Message text or user ID was missing.")
+                }
+                sendMessage(request)
+                ResponseEntity.ok("OK.")
             }
-            else -> {ResponseEntity.ok("BAD_REQUEST")}
+            else -> {ResponseEntity.badRequest().body("INVALID METHOD.")}
         }
     }
 
-    fun sendMessage(message: VkMessage) {
+    fun sendMessage(message: VkRequest) {
         val randomId = Random.nextInt()
         val restTemplate = RestTemplate()
-//        try {
-            val response = restTemplate.getForObject(UriComponentsBuilder.fromHttpUrl(sendMessageUrl)
-                    .queryParam("user_id", message.obj.sender)
-                    .queryParam("message", "Вы сказали: " + message.obj.text)
-                    .queryParam("random_id", randomId)
-                    .queryParam("access_token", apiToken)
-                    .queryParam("v", message.v)
-                    .build().toUri(), String::class.java)
+        val response = restTemplate.getForObject(UriComponentsBuilder.fromHttpUrl(sendMessageUrl)
+                .queryParam("user_id", message.obj?.message?.sender)
+                .queryParam("message", "Вы сказали: " + message.obj?.message?.text)
+                .queryParam("random_id", randomId)
+                .queryParam("access_token", apiToken)
+                .queryParam("v", message.v)
+                .build().toUri(), String::class.java)
         println(response)
-//        } catch (e: Exception) {
-//            //
-//        }
     }
 }

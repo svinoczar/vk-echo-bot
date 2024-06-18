@@ -1,13 +1,13 @@
-package svinoczar.vk.echobot
+package svinoczar.vk.echobot.data
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-data class VkMessage(
+data class VkRequest(
         val type: String,
-        val eventId: Int,
-        val v: String,
+        val eventId: Int?,
+        val v: String?,
         @JsonProperty("object")
-        val obj: VkMessageObject,
+        val obj: VkRequestObject?,
         @JsonProperty("group_id")
         val groupId: Int
 )
